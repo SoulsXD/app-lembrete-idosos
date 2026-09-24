@@ -20,9 +20,11 @@
       "permissions": [
         "USE_FULL_SCREEN_INTENT",
         "SCHEDULE_EXACT_ALARM",
+        "USE_EXACT_ALARM",
         "SYSTEM_ALERT_WINDOW",
         "VIBRATE",
-        "RECEIVE_BOOT_COMPLETED"
+        "RECEIVE_BOOT_COMPLETED",
+        "WAKE_LOCK"
       ]
     },
     "web": {
