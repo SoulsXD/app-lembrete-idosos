@@ -288,7 +288,7 @@ export default function HomeScreen() {
       <View style={styles.barraNavegacao}>
         <TouchableOpacity style={[styles.botaoAba, abaAtiva === 'cadastro' && styles.abaSelecionada]} onPress={() => setAbaAtiva('cadastro')}>
           <Image 
-            source={require('../../assets/images/tabs_registro_mediacamentos.png')} 
+            source={require('../../assets/images/tabs_registro_medicamentos.png')} 
             style={[styles.iconeTab, abaAtiva === 'cadastro' && styles.iconeTabAtiva]} 
           />
         </TouchableOpacity>
