@@ -6,10 +6,15 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import notifee, { TriggerType, AndroidImportance, EventType, AndroidCategory, AndroidVisibility } from '@notifee/react-native';
 import { iniciarBanco, adicionarMedicamento, listarMedicamentos, deletarMedicamento, salvarNomePaciente, obterNomePaciente, Medicamento } from '../../database';
 
-notifee.onBackgroundEvent(async () => {}); //função para que as notificações funcionem mesmo com o app fechado
+//escuta o clique na notificacao quando o app ta em segundo plano e avisa a tela
+notifee.onBackgroundEvent(async ({ type, detail }) => {
+  if (type === EventType.PRESS) {
+    DeviceEventEmitter.emit('alarmeBackground', detail.notification);
+  }
+});
 
 export default function HomeScreen() {
-  //estados
+  //estados principais
   const [chamadaVisivel, setChamadaVisivel] = useState(false);
   const chamadaAtivaRef = useRef(false);
   const [resumoRemedios, setResumoRemedios] = useState('');
@@ -17,15 +22,24 @@ export default function HomeScreen() {
   const [pacienteAtual, setPacienteAtual] = useState(''); 
   const somChamada = useRef<Audio.Sound | null>(null);
 
+  //estados do app
+  const [abaAtiva, setAbaAtiva] = useState<'cadastro' | 'lista'>('cadastro'); //controle das abas
   const [nomePacienteGlobal, setNomePacienteGlobal] = useState('');
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([]);
+  
+  //estados do formulario
   const [nomeForm, setNomeForm] = useState('');
   const [dosagemForm, setDosagemForm] = useState('');
+  const [intervaloForm, setIntervaloForm] = useState(''); 
   const [horarioForm, setHorarioForm] = useState('Clique para selecionar');
   const [date, setDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
 
-  //inicialização do banco e do notifee
+  //estados da lixeira
+  const [modalExclusaoVisivel, setModalExclusaoVisivel] = useState(false);
+  const [idParaExcluir, setIdParaExcluir] = useState<number | null>(null);
+
+  //inicialização
   useEffect(() => {
     iniciarBanco();
     setMedicamentos(listarMedicamentos());
@@ -36,7 +50,6 @@ export default function HomeScreen() {
       if (remedios) dispararTelaChamada(remedios, paciente || 'Paciente');
     };
 
-    //detecta que a notificação foi clicada e abre a tela de chamada (ou se ja esta no app)
     notifee.getInitialNotification().then(n => {
       if (n) tratarNotificacao(n.notification.data?.remedios as string, n.notification.data?.paciente as string);
     });
@@ -57,7 +70,7 @@ export default function HomeScreen() {
     };
   }, []);
 
-  //permissoes necessarias (noticação, alarme e bateria)
+  //permissoes
   async function configurarNotifee() {
     await notifee.requestPermission();
     await notifee.createChannel({
@@ -82,7 +95,6 @@ export default function HomeScreen() {
     salvarNomePaciente(texto);
   };
 
-  //formata o horário selecionado pelo DateTimePicker para que fique em hora:minuto
   const onChangeTime = (_: any, selectedDate?: Date) => {
     setShowPicker(false);
     if (selectedDate) {
@@ -91,16 +103,23 @@ export default function HomeScreen() {
     }
   };
 
-  //alarme e notificação
-  const agendarAlarmeReal = async (idDoBanco: string, nomeRemedio: string, dosagem: string, horario: string) => {
+  //alarme
+  const agendarAlarmeReal = async (idNotificacao: string, nomeRemedio: string, dosagem: string, horaBase: Date, offsetHoras: number) => {
     try {
-      const [hora, minuto] = horario.split(':').map(Number);
       const dataAlarme = new Date();
-      dataAlarme.setHours(hora, minuto, 0, 0);
-      if (dataAlarme.getTime() <= Date.now()) dataAlarme.setDate(dataAlarme.getDate() + 1);
+      dataAlarme.setHours(horaBase.getHours() + offsetHoras, horaBase.getMinutes(), 0, 0);
+      
+      const agora = new Date();
+      agora.setSeconds(0, 0); 
+
+      if (dataAlarme.getTime() < agora.getTime()) {
+        dataAlarme.setDate(dataAlarme.getDate() + 1);
+      } else if (dataAlarme.getTime() === agora.getTime()) {
+        dataAlarme.setSeconds(new Date().getSeconds() + 5);
+      }
 
       await notifee.createTriggerNotification({
-        id: idDoBanco,
+        id: idNotificacao,
         title: 'hora do remedio', 
         body: `toque para atender: ${nomeRemedio}`, 
         data: { remedios: `${nomeRemedio} ${dosagem}`, paciente: nomePacienteGlobal }, 
@@ -112,44 +131,61 @@ export default function HomeScreen() {
           fullScreenAction: { id: 'default', launchActivity: 'default' } 
         },
       }, { 
-        type: TriggerType.TIMESTAMP, 
-        timestamp: dataAlarme.getTime(), 
-        alarmManager: { allowWhileIdle: true }
+        type: TriggerType.TIMESTAMP, timestamp: dataAlarme.getTime(), alarmManager: { allowWhileIdle: true }
       });
-      return true; //retorna verdadeiro se o android aceitou criar o alarme (estava dando erro)
+      return true; 
     } catch (erro) {
-      console.error(erro);
-      Alert.alert('Erro no Sistema', 'O Android bloqueou o agendamento exato. Vá nas configurações do app e libere a permissão de "Alarmes e Lembretes".');
-      return false; //retorna falso se o android bloqueou (estava dando erro)
+      return false; 
     }
   };
 
-  //banco e crud
+  //banco e crud com reincidencia
   const salvarRemedio = async () => {
     if (!(await verificarPermissoesCriticas())) return;
     if (!nomeForm || !dosagemForm || horarioForm === 'Clique para selecionar') return Alert.alert('erro', 'preencha todos os campos do remedio');
 
-    const novoId = adicionarMedicamento(nomeForm, dosagemForm, horarioForm);
+    const horarioParaBanco = intervaloForm ? `${horarioForm} (de ${intervaloForm} em ${intervaloForm}h)` : horarioForm;
+    const novoId = adicionarMedicamento(nomeForm, dosagemForm, horarioParaBanco);
     
-    //tenta agendar no sistema, se der erro ele avisa e nao salva a mentira
-    const agendouComSucesso = await agendarAlarmeReal(novoId.toString(), nomeForm, dosagemForm, horarioForm);
+    const qtdHoras = parseInt(intervaloForm) || 0;
+    const repeticoes = qtdHoras > 0 ? 3 : 1; 
     
-    if (agendouComSucesso) {
-      setNomeForm(''); setDosagemForm(''); setHorarioForm('Clique para selecionar');
+    let deuErro = false;
+    for(let i = 0; i < repeticoes; i++) {
+      const sucesso = await agendarAlarmeReal(`${novoId}_${i}`, nomeForm, dosagemForm, date, i * qtdHoras);
+      if(!sucesso) deuErro = true;
+    }
+    
+    if (!deuErro) {
+      setNomeForm(''); setDosagemForm(''); setIntervaloForm(''); setHorarioForm('Clique para selecionar');
       setMedicamentos(listarMedicamentos());
       Alert.alert('sucesso', 'remedio programado');
+      setAbaAtiva('lista');
     } else {
-      deletarMedicamento(novoId); //apaga do banco se o android recusar o alarme para nao ter vicio
+      deletarMedicamento(novoId); 
+      Alert.alert('erro', 'o sistema bloqueou o alarme');
     }
   };
 
-  const removerRemedio = async (id: number) => {
-    deletarMedicamento(id);
-    await notifee.cancelNotification(id.toString());
-    setMedicamentos(listarMedicamentos());
+  //funcoes da lixeira
+  const perguntarRemover = (id: number) => {
+    setIdParaExcluir(id);
+    setModalExclusaoVisivel(true);
   };
 
-  //TTS, botoes, vibração e som da chamada
+  const confirmarRemoverRemedio = async () => {
+    if (idParaExcluir !== null) {
+      deletarMedicamento(idParaExcluir);
+      await notifee.cancelNotification(`${idParaExcluir}_0`);
+      await notifee.cancelNotification(`${idParaExcluir}_1`);
+      await notifee.cancelNotification(`${idParaExcluir}_2`);
+      setMedicamentos(listarMedicamentos());
+    }
+    setModalExclusaoVisivel(false);
+    setIdParaExcluir(null);
+  };
+
+  //chamada
   const dispararTelaChamada = async (textoAgrupado: string, pacienteOuvinte: string) => {
     if (chamadaAtivaRef.current) return; 
     chamadaAtivaRef.current = true;
@@ -158,81 +194,128 @@ export default function HomeScreen() {
     setResumoRemedios(textoAgrupado || "seus remedios");
     setPacienteAtual(pacienteOuvinte); 
     
-    if (somChamada.current) {
-      await somChamada.current.stopAsync();
-      await somChamada.current.unloadAsync();
-    }
+    Speech.stop();
+    Vibration.vibrate([1000, 1000], true);
 
-    const { sound } = await Audio.Sound.createAsync({ uri: 'https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg' }, { isLooping: true });
-    somChamada.current = sound;
-    await sound.playAsync(); Vibration.vibrate([1000, 1000], true);
+    try {
+      const { sound } = await Audio.Sound.createAsync({ uri: 'https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg' }, { isLooping: true });
+      somChamada.current = sound;
+      await sound.playAsync(); 
+    } catch (erro) {
+      console.log("sem internet");
+    }
   };
 
   const atenderChamada = async () => {
-    Vibration.cancel();
-    if (somChamada.current) { await somChamada.current.stopAsync(); await somChamada.current.unloadAsync(); }
-    setChamadaAtendida(true);
+    Vibration.cancel(); Speech.stop();
+
+    if (somChamada.current) { 
+      try { await somChamada.current.stopAsync(); await somChamada.current.unloadAsync(); } catch(e) {}
+      somChamada.current = null;
+    }
     
+    setChamadaAtendida(true);
     Speech.speak(`alo ${pacienteAtual}! esta na hora de tomar: ${resumoRemedios}`, { language: 'pt-BR', rate: 0.9 });
   };
 
-  const desligarChamada = () => { 
-    Speech.stop(); 
-    Vibration.cancel();
-    if (somChamada.current) { somChamada.current.stopAsync(); }
+  const desligarChamada = async () => { 
+    Speech.stop(); Vibration.cancel();
+    
+    if (somChamada.current) { 
+      try { await somChamada.current.stopAsync(); await somChamada.current.unloadAsync(); } catch(e) {}
+      somChamada.current = null; 
+    }
+    
     setChamadaVisivel(false); 
     chamadaAtivaRef.current = false; 
   };
 
-  //interface do usuário
+  //interface
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       
-      {/* CABEÇALHO */}
+      {/* cabecalho sempre visivel */}
       <View style={styles.header}>
-        <Image source={require('../../assets/images/logo_medalo.jpeg')} style={styles.logoCabecalho} />
+        <Image source={require('../../assets/images/logo_medalo.png')} style={styles.logoCabecalho} />
         <Text style={styles.tituloApp}>medalo</Text>
         <Text style={styles.subtituloApp}>tela para o cuidador</Text>
       </View>
 
-      <View style={styles.cardPerfil}>
-        <Text style={styles.tituloSecao}>quem vai tomar os remedios?</Text>
-        <TextInput 
-          style={styles.inputPerfil} 
-          placeholder="ex: dona maria" 
-          placeholderTextColor="#888" 
-          value={nomePacienteGlobal} 
-          onChangeText={atualizarPerfilPaciente} 
-        />
-      </View>
-
-      <View style={styles.cardCadastro}>
-        <Text style={styles.tituloSecao}>cadastrar remedio</Text>
-        <TextInput style={styles.input} placeholder="nome do remedio" placeholderTextColor="#888" value={nomeForm} onChangeText={setNomeForm} />
-        <TextInput style={styles.input} placeholder="dosagem do remedio (ex: 50mg)" placeholderTextColor="#888" value={dosagemForm} onChangeText={setDosagemForm} />
-        
-        <TouchableOpacity style={styles.botaoHorario} onPress={() => setShowPicker(true)}>
-          <Text style={styles.textoBotaoHorario}>horario: {horarioForm}</Text>
-        </TouchableOpacity>
-        {showPicker && <DateTimePicker value={date} mode="time" is24Hour={true} display="default" onChange={onChangeTime} />}
-
-        <TouchableOpacity style={styles.botaoSalvar} onPress={salvarRemedio}><Text style={styles.textoBotaoSalvar}>salvar na lista</Text></TouchableOpacity>
-      </View>
-
-      <Text style={styles.tituloSecaoLista}>lista de agendamentos</Text>
-      <FlatList data={medicamentos} keyExtractor={(item) => item.id.toString()} style={styles.lista}
-        ListEmptyComponent={<Text style={styles.listaVazia}>nenhum registro encontrado</Text>}
-        renderItem={({ item }) => (
-          <View style={styles.itemLista}>
-            <View>
-              <Text style={styles.itemNome}>{item.nome}</Text><Text style={styles.itemDetalhes}>{item.dosagem} as {item.horario}</Text>
-            </View>
-            <TouchableOpacity style={styles.botaoDeletar} onPress={() => removerRemedio(item.id)}><Text style={styles.textoBotaoDeletar}>excluir</Text></TouchableOpacity>
+      {/* ABA DE CADASTRO */}
+      {abaAtiva === 'cadastro' && (
+        <View style={styles.areaAba}>
+          <View style={styles.cardPerfil}>
+            <Text style={styles.tituloSecao}>quem vai tomar os remedios?</Text>
+            <TextInput style={styles.inputPerfil} placeholder="ex: dona maria" placeholderTextColor="#888" value={nomePacienteGlobal} onChangeText={atualizarPerfilPaciente} />
           </View>
-        )}
-      />
 
-      {/*interface da tela de chamada*/}
+          <View style={styles.cardCadastro}>
+            <Text style={styles.tituloSecao}>cadastrar remedio</Text>
+            <TextInput style={styles.input} placeholder="nome do remedio" placeholderTextColor="#888" value={nomeForm} onChangeText={setNomeForm} />
+            <TextInput style={styles.input} placeholder="dosagem (ex: 50mg)" placeholderTextColor="#888" value={dosagemForm} onChangeText={setDosagemForm} />
+            
+            <TextInput style={styles.input} placeholder="repetir a cada (ex: 8 horas) opcional" placeholderTextColor="#888" value={intervaloForm} onChangeText={setIntervaloForm} keyboardType="numeric" />
+            
+            <TouchableOpacity style={styles.botaoHorario} onPress={() => setShowPicker(true)}>
+              <Text style={styles.textoBotaoHorario}>horario: {horarioForm}</Text>
+            </TouchableOpacity>
+            {showPicker && <DateTimePicker value={date} mode="time" is24Hour={true} display="default" onChange={onChangeTime} />}
+
+            <TouchableOpacity style={styles.botaoSalvar} onPress={salvarRemedio}><Text style={styles.textoBotaoSalvar}>salvar na lista</Text></TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* ABA DE LISTA */}
+      {abaAtiva === 'lista' && (
+        <View style={styles.areaAba}>
+          <Text style={styles.tituloSecaoLista}>lista de agendamentos</Text>
+          <FlatList data={medicamentos} keyExtractor={(item) => item.id.toString()} style={styles.lista}
+            ListEmptyComponent={<Text style={styles.listaVazia}>nenhum registro encontrado</Text>}
+            renderItem={({ item }) => (
+              <View style={styles.itemLista}>
+                <View style={styles.textosDaLista}>
+                  <Text style={styles.itemNome}>{item.nome}</Text><Text style={styles.itemDetalhes}>{item.dosagem} as {item.horario}</Text>
+                </View>
+                <TouchableOpacity onPress={() => perguntarRemover(item.id)}><Text style={styles.iconeLixeira}>🗑️</Text></TouchableOpacity>
+              </View>
+            )}
+          />
+        </View>
+      )}
+
+      {/* menu inferior de navegacao (tabs) COM IMAGENS */}
+      <View style={styles.barraNavegacao}>
+        <TouchableOpacity style={[styles.botaoAba, abaAtiva === 'cadastro' && styles.abaSelecionada]} onPress={() => setAbaAtiva('cadastro')}>
+          <Image 
+            source={require('../../assets/images/tabs_registro_mediacamento.png')} 
+            style={[styles.iconeTab, abaAtiva === 'cadastro' && styles.iconeTabAtiva]} 
+          />
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={[styles.botaoAba, abaAtiva === 'lista' && styles.abaSelecionada]} onPress={() => setAbaAtiva('lista')}>
+          <Image 
+            source={require('../../assets/images/tabs_horarios_registrados.png')} 
+            style={[styles.iconeTab, abaAtiva === 'lista' && styles.iconeTabAtiva]} 
+          />
+        </TouchableOpacity>
+      </View>
+
+      {/* modal de exclusao estilo ios */}
+      <Modal visible={modalExclusaoVisivel} transparent={true} animationType="fade">
+        <View style={styles.fundoModalEscuro}>
+          <View style={styles.caixinhaModal}>
+            <Text style={styles.tituloModal}>apagar remedio?</Text>
+            <Text style={styles.textoModal}>essa acao ira remover o alarme.</Text>
+            <View style={styles.botoesModal}>
+              <TouchableOpacity style={styles.botaoModalCancelar} onPress={() => setModalExclusaoVisivel(false)}><Text style={styles.textoBotaoModal}>cancelar</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.botaoModalExcluir} onPress={confirmarRemoverRemedio}><Text style={styles.textoBotaoExcluirModal}>sim, excluir</Text></TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* tela da chamada */}
       <Modal visible={chamadaVisivel} animationType="slide" presentationStyle="fullScreen">
         <View style={styles.telaChamadaContainer}>
           <View style={styles.topoChamada}>
@@ -242,7 +325,7 @@ export default function HomeScreen() {
 
           <View style={styles.avatarContainer}>
             <View style={styles.avatarCiculo}>
-              <Image source={require('../../assets/images/logo_medalo.jpeg')} style={styles.logoChamada} />
+              <Image source={require('../../assets/images/logo_medalo.png')} style={styles.logoChamada} />
             </View>
           </View>
 
@@ -268,13 +351,13 @@ export default function HomeScreen() {
 
 //styles
 const styles = StyleSheet.create({
-  //tela principal
-  container: { flex: 1, backgroundColor: '#F5F5F5', padding: 20, paddingTop: 40 },
+  container: { flex: 1, backgroundColor: '#F5F5F5', paddingTop: 40 },
   header: { alignItems: 'center', marginBottom: 15 },
   logoCabecalho: { width: 70, height: 70, resizeMode: 'contain', marginBottom: 5 },
   tituloApp: { fontSize: 24, fontWeight: 'bold', color: '#333333' }, subtituloApp: { fontSize: 14, color: '#666666' },
   
-  //cartao de perfil 
+  areaAba: { flex: 1, paddingHorizontal: 20 },
+  
   cardPerfil: { backgroundColor: '#E5FFE9', padding: 15, borderWidth: 1, borderColor: '#91FFA2', marginBottom: 15, borderRadius: 5 },
   inputPerfil: { backgroundColor: '#FFFFFF', color: '#000000', padding: 10, borderWidth: 1, borderColor: '#91FFA2', fontSize: 16, fontWeight: 'bold', textAlign: 'center' },
   
@@ -284,17 +367,31 @@ const styles = StyleSheet.create({
   botaoHorario: { backgroundColor: '#FFFFFF', padding: 12, borderWidth: 1, borderColor: '#CCCCCC', marginBottom: 10, alignItems: 'center' },
   textoBotaoHorario: { color: '#333333', fontSize: 16, fontWeight: 'bold' },
   
-  //botao salvar com o verde 91FFA2
   botaoSalvar: { backgroundColor: '#91FFA2', padding: 15, alignItems: 'center', marginTop: 5 }, 
-  textoBotaoSalvar: { color: '#000000', fontWeight: 'bold', fontSize: 16 }, //letra preta para dar leitura no fundo verde claro
+  textoBotaoSalvar: { color: '#000000', fontWeight: 'bold', fontSize: 16 }, 
   
-  //lista
-  tituloSecaoLista: { color: '#333333', fontSize: 18, fontWeight: 'bold', marginBottom: 10 }, lista: { flex: 1, marginBottom: 10 },
-  itemLista: { backgroundColor: '#FFFFFF', padding: 15, borderBottomWidth: 1, borderBottomColor: '#EEEEEE', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  itemNome: { color: '#000000', fontSize: 18, fontWeight: 'bold' }, itemDetalhes: { color: '#555555', fontSize: 14, marginTop: 4 },
-  botaoDeletar: { backgroundColor: '#DC3545', paddingVertical: 8, paddingHorizontal: 12 }, textoBotaoDeletar: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 12 },
+  tituloSecaoLista: { color: '#333333', fontSize: 18, fontWeight: 'bold', marginBottom: 10, textAlign: 'center' }, lista: { flex: 1, marginBottom: 10 },
+  itemLista: { backgroundColor: '#FFFFFF', padding: 15, borderBottomWidth: 1, borderBottomColor: '#EEEEEE', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderRadius: 8 },
+  textosDaLista: { flex: 1 }, itemNome: { color: '#000000', fontSize: 18, fontWeight: 'bold' }, itemDetalhes: { color: '#555555', fontSize: 14, marginTop: 4 },
+  iconeLixeira: { fontSize: 24 },
   listaVazia: { color: '#888888', textAlign: 'center', marginTop: 20, fontSize: 16 },
-  
+
+  //navegacao em abas (bottom tabs)
+  barraNavegacao: { flexDirection: 'row', backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#DDDDDD', paddingBottom: 20, paddingTop: 10 },
+  botaoAba: { flex: 1, alignItems: 'center', paddingVertical: 10 },
+  abaSelecionada: { borderTopWidth: 3, borderTopColor: '#28A745', marginTop: -10, paddingTop: 13 },
+  iconeTab: { width: 30, height: 30, resizeMode: 'contain', opacity: 0.5 }, 
+  iconeTabAtiva: { opacity: 1, tintColor: '#28A745' }, //tinta verde quando a aba estiver selecionada
+
+  //modal excluir
+  fundoModalEscuro: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  caixinhaModal: { backgroundColor: '#FFF', padding: 20, borderRadius: 10, width: '80%', alignItems: 'center' },
+  tituloModal: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 10 }, textoModal: { color: '#666', marginBottom: 20 },
+  botoesModal: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
+  botaoModalCancelar: { flex: 1, padding: 12, backgroundColor: '#EEE', borderRadius: 5, marginRight: 10, alignItems: 'center' },
+  botaoModalExcluir: { flex: 1, padding: 12, backgroundColor: '#DC3545', borderRadius: 5, alignItems: 'center' },
+  textoBotaoModal: { color: '#333', fontWeight: 'bold' }, textoBotaoExcluirModal: { color: '#FFF', fontWeight: 'bold' },
+
   //chamada
   telaChamadaContainer: { flex: 1, backgroundColor: '#1E1E24', paddingTop: 80, paddingBottom: 60, justifyContent: 'space-between' },
   topoChamada: { alignItems: 'center' }, textoStatusChamada: { color: '#A0A0A0', fontSize: 16, marginBottom: 10 },

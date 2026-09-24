@@ -2,21 +2,19 @@
   "expo": {
     "name": "MedAlo",
     "slug": "MedAlo",
-    "version": "1.0.0",
+    "version": "0.9.4",
     "orientation": "portrait",
-    "icon": "./assets/images/logo_medalo.jpeg",
+    "icon": "./assets/images/icone_pequeno_medalo.png",
     "scheme": "medalo",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/logo_medalo.jpeg"
+        "foregroundImage": "./assets/images/icone_pequeno_medalo.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.alonebot.MedAlo",
       "permissions": [
@@ -29,14 +27,14 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/logo_medalo.jpeg"
+      "favicon": "./assets/images/icone_pequeno_medalo.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/logo_medalo.jpeg",
+          "image": "./assets/images/icone_pequeno_medalo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
@@ -55,8 +53,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "ed62c819-64d2-43de-947c-8618df4691c7"
+        "projectId": "0c3ec454-9439-4149-8b3b-e23fefb3ccf1"
       }
-    }
+    },
+    "owner": "alonebotz"
   }
 }
