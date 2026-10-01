@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
 
 interface Props {
   nomePacienteGlobal: string;
@@ -11,7 +12,7 @@ interface Props {
 export default function FormularioCadastro({ nomePacienteGlobal, atualizarPerfilPaciente, onSalvar }: Props) {
   const [nomeForm, setNomeForm] = useState('');
   const [dosagemForm, setDosagemForm] = useState('');
-  const [intervaloForm, setIntervaloForm] = useState(''); 
+  const [intervaloForm, setIntervaloForm] = useState('0'); // Começa no '0' (sem repetição)
   const [horarioForm, setHorarioForm] = useState('Clique para selecionar');
   const [date, setDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
@@ -25,12 +26,14 @@ export default function FormularioCadastro({ nomePacienteGlobal, atualizarPerfil
   };
 
   const dispararSalvamento = async () => {
-    // Chama a função principal lá no index.tsx. Se der certo (true), ele limpa os campos.
-    const sucesso = await onSalvar(nomeForm, dosagemForm, intervaloForm, horarioForm, date);
+    // Se for '0', passamos vazio para o banco de dados não escrever "de 0 em 0h"
+    const intervaloTratado = intervaloForm === '0' ? '' : intervaloForm;
+    
+    const sucesso = await onSalvar(nomeForm, dosagemForm, intervaloTratado, horarioForm, date);
     if (sucesso) {
       setNomeForm('');
       setDosagemForm('');
-      setIntervaloForm('');
+      setIntervaloForm('0');
       setHorarioForm('Clique para selecionar');
     }
   };
@@ -45,8 +48,23 @@ export default function FormularioCadastro({ nomePacienteGlobal, atualizarPerfil
       <View style={styles.cardCadastro}>
         <Text style={styles.tituloSecao}>cadastrar remedio</Text>
         <TextInput style={styles.input} placeholder="nome do remedio" placeholderTextColor="#888" value={nomeForm} onChangeText={setNomeForm} />
-        <TextInput style={styles.input} placeholder="dosagem (ex: 50mg)" placeholderTextColor="#888" value={dosagemForm} onChangeText={setDosagemForm} />
-        <TextInput style={styles.input} placeholder="repetir a cada quantas horas? (opcional)" placeholderTextColor="#888" value={intervaloForm} onChangeText={setIntervaloForm} keyboardType="numeric" />
+        <TextInput style={styles.input} placeholder="dosagem (ex: 1 comprimido, 20 gotas)" placeholderTextColor="#888" value={dosagemForm} onChangeText={setDosagemForm} />
+        
+        {/* NOVO SELECT DE REPETIÇÃO */}
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={intervaloForm}
+            onValueChange={(itemValue) => setIntervaloForm(itemValue)}
+            style={styles.picker}
+          >
+            <Picker.Item label="Apenas uma vez (sem repetição)" value="0" />
+            <Picker.Item label="A cada 4 horas" value="4" />
+            <Picker.Item label="A cada 6 horas" value="6" />
+            <Picker.Item label="A cada 8 horas" value="8" />
+            <Picker.Item label="A cada 12 horas" value="12" />
+            <Picker.Item label="A cada 24 horas" value="24" />
+          </Picker>
+        </View>
         
         <TouchableOpacity style={styles.botaoHorario} onPress={() => setShowPicker(true)}>
           <Text style={styles.textoBotaoHorario}>horario: {horarioForm}</Text>
@@ -68,6 +86,20 @@ const styles = StyleSheet.create({
   cardCadastro: { backgroundColor: '#FFFFFF', padding: 15, borderWidth: 1, borderColor: '#DDDDDD', marginBottom: 20 },
   tituloSecao: { color: '#333333', fontSize: 16, fontWeight: 'bold', marginBottom: 10, textAlign: 'center' },
   input: { backgroundColor: '#FFFFFF', color: '#000000', padding: 12, borderWidth: 1, borderColor: '#CCCCCC', marginBottom: 10, fontSize: 16 },
+  
+  // Estilos do novo Select
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+    backgroundColor: '#FFFFFF',
+    marginBottom: 10,
+    justifyContent: 'center',
+  },
+  picker: {
+    height: 50,
+    color: '#000000',
+  },
+
   botaoHorario: { backgroundColor: '#FFFFFF', padding: 12, borderWidth: 1, borderColor: '#CCCCCC', marginBottom: 10, alignItems: 'center' },
   textoBotaoHorario: { color: '#333333', fontSize: 16, fontWeight: 'bold' },
   botaoSalvar: { backgroundColor: '#91FFA2', padding: 15, alignItems: 'center', marginTop: 5 }, 

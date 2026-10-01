@@ -163,8 +163,7 @@ export default function HomeScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.header}>
-        <Image source={require('../../assets/images/logo_medalo.png')} style={styles.logoCabecalho} />
-        <Text style={styles.tituloApp}>medalo</Text>
+        <Image source={require('../../assets/images/logo_cabecalho.png')} style={styles.logoCabecalho} />
         <Text style={styles.subtituloApp}>tela para o cuidador</Text>
       </View>
 
@@ -187,7 +186,7 @@ export default function HomeScreen() {
       {/* Navegação Inferior */}
       <View style={styles.barraNavegacao}>
         <TouchableOpacity style={[styles.botaoAba, abaAtiva === 'cadastro' && styles.abaSelecionada]} onPress={() => setAbaAtiva('cadastro')}>
-          <Image source={require('../../assets/images/tabs_registro_medicamento.png')} style={[styles.iconeTab, abaAtiva === 'cadastro' && styles.iconeTabAtiva]} />
+          <Image source={require('../../assets/images/tabs_registro_medicamentos.png')} style={[styles.iconeTab, abaAtiva === 'cadastro' && styles.iconeTabAtiva]} />
         </TouchableOpacity>
         <TouchableOpacity style={[styles.botaoAba, abaAtiva === 'lista' && styles.abaSelecionada]} onPress={() => setAbaAtiva('lista')}>
           <Image source={require('../../assets/images/tabs_horarios_registrados.png')} style={[styles.iconeTab, abaAtiva === 'lista' && styles.iconeTabAtiva]} />
@@ -241,7 +240,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F5', paddingTop: 40 },
   header: { alignItems: 'center', marginBottom: 15 },
-  logoCabecalho: { width: 70, height: 70, resizeMode: 'contain', marginBottom: 5 },
+  logoCabecalho: { width: 120, height: 120, resizeMode: 'contain', marginBottom: 5 },
   tituloApp: { fontSize: 24, fontWeight: 'bold', color: '#333333' }, subtituloApp: { fontSize: 14, color: '#666666' },
   
   barraNavegacao: { flexDirection: 'row', backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#DDDDDD', paddingBottom: 20, paddingTop: 10 },

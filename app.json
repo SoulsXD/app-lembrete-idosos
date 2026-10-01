@@ -2,7 +2,7 @@
   "expo": {
     "name": "MedAlo",
     "slug": "MedAlo",
-    "version": "0.9.4",
+    "version": "0.9.5",
     "orientation": "portrait",
     "icon": "./assets/images/icone_pequeno_medalo.png",
     "scheme": "medalo",
@@ -36,7 +36,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/icone_pequeno_medalo.png",
+          "image": "./assets/images/logo_splash.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",

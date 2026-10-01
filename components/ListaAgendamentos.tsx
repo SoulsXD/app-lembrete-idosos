@@ -23,7 +23,7 @@ export default function ListaAgendamentos({ medicamentos, perguntarRemover }: Pr
             {/* excluir com modal de confirmação */}
             <TouchableOpacity onPress={() => perguntarRemover(item.id)}>
               <Image 
-                source={require('../../assets/images/lixeira.png')} 
+                source={require('../assets/images/lixeira.png')} 
                 style={{ width: 28, height: 28, resizeMode: 'contain',}} 
               />
             </TouchableOpacity>
