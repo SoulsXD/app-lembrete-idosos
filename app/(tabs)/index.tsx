@@ -5,7 +5,6 @@ import { Audio } from 'expo-av';
 import notifee, { TriggerType, AndroidImportance, EventType, AndroidCategory, AndroidVisibility } from '@notifee/react-native';
 import { iniciarBanco, adicionarMedicamento, listarMedicamentos, deletarMedicamento, salvarNomePaciente, obterNomePaciente, Medicamento } from '../../database';
 
-// Importando nossos novos componentes
 import FormularioCadastro from '../../components/FormularioCadastro';
 import ListaAgendamentos from '../../components/ListaAgendamentos';
 
@@ -27,6 +26,8 @@ export default function HomeScreen() {
   
   const [modalExclusaoVisivel, setModalExclusaoVisivel] = useState(false);
   const [idParaExcluir, setIdParaExcluir] = useState<number | null>(null);
+  
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
     iniciarBanco();
@@ -84,7 +85,7 @@ export default function HomeScreen() {
       else if (dataAlarme.getTime() === agora.getTime()) dataAlarme.setSeconds(new Date().getSeconds() + 5);
 
       await notifee.createTriggerNotification({
-        id: idNotificacao, title: 'hora do remedio', body: `toque para atender: ${nomeRemedio}`, 
+        id: idNotificacao, title: 'Hora do medicamento', body: `Toque para atender: ${nomeRemedio}`, 
         data: { remedios: `${nomeRemedio} ${dosagem}`, paciente: nomePacienteGlobal }, 
         android: { channelId: 'lembretes_v2', category: AndroidCategory.ALARM, visibility: AndroidVisibility.PUBLIC, pressAction: { id: 'default' }, fullScreenAction: { id: 'default' } },
       }, { type: TriggerType.TIMESTAMP, timestamp: dataAlarme.getTime(), alarmManager: { allowWhileIdle: true } });
@@ -92,11 +93,10 @@ export default function HomeScreen() {
     } catch { return false; }
   };
 
-  // Função centralizada chamada pelo componente Formulário
   const processarNovoRemedio = async (nome: string, dosagem: string, intervalo: string, horarioForm: string, dateObj: Date) => {
     if (!(await verificarPermissoesCriticas())) return false;
     if (!nome || !dosagem || horarioForm === 'Clique para selecionar') {
-      Alert.alert('erro', 'preencha todos os campos do remedio');
+      Alert.alert('Erro', 'Preencha todos os campos do medicamento.');
       return false;
     }
 
@@ -113,12 +113,12 @@ export default function HomeScreen() {
     
     if (!deuErro) {
       setMedicamentos(listarMedicamentos());
-      Alert.alert('sucesso', 'remedio programado');
+      Alert.alert('Sucesso', 'Medicamento programado com sucesso.');
       setAbaAtiva('lista');
-      return true; // Sucesso, avisa o formulário para limpar os campos
+      return true; 
     } else {
       deletarMedicamento(novoId); 
-      Alert.alert('erro', 'o sistema bloqueou o alarme');
+      Alert.alert('Erro', 'O sistema bloqueou o alarme.');
       return false;
     }
   };
@@ -139,7 +139,7 @@ export default function HomeScreen() {
   const dispararTelaChamada = async (textoAgrupado: string, pacienteOuvinte: string) => {
     if (chamadaAtivaRef.current) return; 
     chamadaAtivaRef.current = true;
-    setChamadaAtendida(false); setChamadaVisivel(true); setResumoRemedios(textoAgrupado || "seus remedios"); setPacienteAtual(pacienteOuvinte); 
+    setChamadaAtendida(false); setChamadaVisivel(true); setResumoRemedios(textoAgrupado || "Seus medicamentos"); setPacienteAtual(pacienteOuvinte); 
     Speech.stop(); Vibration.vibrate([1000, 1000], true);
     try {
       const { sound } = await Audio.Sound.createAsync({ uri: 'https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg' }, { isLooping: true });
@@ -151,7 +151,7 @@ export default function HomeScreen() {
     Vibration.cancel(); Speech.stop();
     if (somChamada.current) { try { await somChamada.current.stopAsync(); await somChamada.current.unloadAsync(); } catch{} somChamada.current = null; }
     setChamadaAtendida(true);
-    Speech.speak(`alo ${pacienteAtual}! esta na hora de tomar: ${resumoRemedios}`, { language: 'pt-BR', rate: 0.9 });
+    Speech.speak(`Alô, ${pacienteAtual}! Está na hora de tomar: ${resumoRemedios}`, { language: 'pt-BR', rate: 0.9 });
   };
 
   const desligarChamada = async () => { 
@@ -161,18 +161,25 @@ export default function HomeScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={[styles.container, isDarkMode && styles.containerDark]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      
       <View style={styles.header}>
         <Image source={require('../../assets/images/logo_cabecalho.png')} style={styles.logoCabecalho} />
-        <Text style={styles.subtituloApp}>tela para o cuidador</Text>
+        <Text style={[styles.subtituloApp, isDarkMode && styles.textoDark]}>Tela para o cuidador</Text>
+        <TouchableOpacity style={styles.botaoTema} onPress={() => setIsDarkMode(!isDarkMode)}>
+          <Image 
+            source={isDarkMode ? require('../../assets/images/sol_claro.png') : require('../../assets/images/lua_escura.png')} 
+            style={styles.iconeTema}
+          />
+        </TouchableOpacity>
       </View>
 
-      {/* RENDERIZANDO OS NOVOS COMPONENTES */}
       {abaAtiva === 'cadastro' && (
         <FormularioCadastro 
           nomePacienteGlobal={nomePacienteGlobal} 
           atualizarPerfilPaciente={atualizarPerfilPaciente} 
           onSalvar={processarNovoRemedio} 
+          isDarkMode={isDarkMode}
         />
       )}
 
@@ -180,28 +187,27 @@ export default function HomeScreen() {
         <ListaAgendamentos 
           medicamentos={medicamentos} 
           perguntarRemover={perguntarRemover} 
+          isDarkMode={isDarkMode}
         />
       )}
 
-      {/* Navegação Inferior */}
-      <View style={styles.barraNavegacao}>
+      <View style={[styles.barraNavegacao, isDarkMode && styles.barraNavegacaoDark]}>
         <TouchableOpacity style={[styles.botaoAba, abaAtiva === 'cadastro' && styles.abaSelecionada]} onPress={() => setAbaAtiva('cadastro')}>
-          <Image source={require('../../assets/images/tabs_registro_medicamentos.png')} style={[styles.iconeTab, abaAtiva === 'cadastro' && styles.iconeTabAtiva]} />
+          <Image source={require('../../assets/images/tabs_registro_medicamento.png')} style={[styles.iconeTab, abaAtiva === 'cadastro' && styles.iconeTabAtiva]} />
         </TouchableOpacity>
         <TouchableOpacity style={[styles.botaoAba, abaAtiva === 'lista' && styles.abaSelecionada]} onPress={() => setAbaAtiva('lista')}>
           <Image source={require('../../assets/images/tabs_horarios_registrados.png')} style={[styles.iconeTab, abaAtiva === 'lista' && styles.iconeTabAtiva]} />
         </TouchableOpacity>
       </View>
 
-      {/* Modais */}
       <Modal visible={modalExclusaoVisivel} transparent={true} animationType="fade">
         <View style={styles.fundoModalEscuro}>
-          <View style={styles.caixinhaModal}>
-            <Text style={styles.tituloModal}>apagar remedio?</Text>
-            <Text style={styles.textoModal}>essa acao ira remover o alarme.</Text>
+          <View style={[styles.caixinhaModal, isDarkMode && styles.cardDark]}>
+            <Text style={[styles.tituloModal, isDarkMode && styles.textoDark]}>Apagar medicamento?</Text>
+            <Text style={[styles.textoModal, isDarkMode && styles.subtextoDark]}>Esta ação irá remover o alarme.</Text>
             <View style={styles.botoesModal}>
-              <TouchableOpacity style={styles.botaoModalCancelar} onPress={() => setModalExclusaoVisivel(false)}><Text style={styles.textoBotaoModal}>cancelar</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.botaoModalExcluir} onPress={confirmarRemoverRemedio}><Text style={styles.textoBotaoExcluirModal}>sim, excluir</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.botaoModalCancelar} onPress={() => setModalExclusaoVisivel(false)}><Text style={styles.textoBotaoModal}>Cancelar</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.botaoModalExcluir} onPress={confirmarRemoverRemedio}><Text style={styles.textoBotaoExcluirModal}>Sim, excluir</Text></TouchableOpacity>
             </View>
           </View>
         </View>
@@ -210,8 +216,8 @@ export default function HomeScreen() {
       <Modal visible={chamadaVisivel} animationType="slide" presentationStyle="fullScreen">
         <View style={styles.telaChamadaContainer}>
           <View style={styles.topoChamada}>
-            <Text style={styles.textoStatusChamada}>{chamadaAtendida ? "00:01" : "chamada recebida"}</Text>
-            <Text style={styles.nomeContato}>assistente medalo</Text><Text style={styles.subContato}>lembrete para {pacienteAtual}</Text>
+            <Text style={styles.textoStatusChamada}>{chamadaAtendida ? "00:01" : "Chamada recebida"}</Text>
+            <Text style={styles.nomeContato}>Assistente MedAlo</Text><Text style={styles.subContato}>Lembrete para {pacienteAtual}</Text>
           </View>
           <View style={styles.avatarContainer}>
             <View style={styles.avatarCiculo}>
@@ -220,7 +226,7 @@ export default function HomeScreen() {
           </View>
           {chamadaAtendida && (
             <View style={styles.infoRemedioArea}>
-               <Text style={styles.textoInfoRemedio}>tomar agora:</Text><Text style={styles.textoRemedioDestaque} numberOfLines={2}>{resumoRemedios}</Text>
+               <Text style={styles.textoInfoRemedio}>Tomar agora:</Text><Text style={styles.textoRemedioDestaque} numberOfLines={2}>{resumoRemedios}</Text>
             </View>
           )}
           <View style={styles.rodapeChamada}>
@@ -239,11 +245,21 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F5', paddingTop: 40 },
-  header: { alignItems: 'center', marginBottom: 15 },
+  containerDark: { backgroundColor: '#121212' }, 
+  
+  header: { alignItems: 'center', marginBottom: 15, position: 'relative' },
   logoCabecalho: { width: 120, height: 120, resizeMode: 'contain', marginBottom: 5 },
-  tituloApp: { fontSize: 24, fontWeight: 'bold', color: '#333333' }, subtituloApp: { fontSize: 14, color: '#666666' },
+  subtituloApp: { fontSize: 14, color: '#666666' },
+  
+  botaoTema: { position: 'absolute', top: 10, right: 20, padding: 5 },
+  iconeTema: { width: 32, height: 32, resizeMode: 'contain' },
+  
+  textoDark: { color: '#FFFFFF' },
+  subtextoDark: { color: '#AAAAAA' },
+  cardDark: { backgroundColor: '#1E1E1E', borderColor: '#333333' },
   
   barraNavegacao: { flexDirection: 'row', backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#DDDDDD', paddingBottom: 20, paddingTop: 10 },
+  barraNavegacaoDark: { backgroundColor: '#1E1E1E', borderTopColor: '#333333' },
   botaoAba: { flex: 1, alignItems: 'center', paddingVertical: 10 },
   abaSelecionada: { borderTopWidth: 3, borderTopColor: '#28A745', marginTop: -10, paddingTop: 13 },
   iconeTab: { width: 30, height: 30, resizeMode: 'contain', opacity: 0.5 }, 
@@ -251,11 +267,13 @@ const styles = StyleSheet.create({
 
   fundoModalEscuro: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   caixinhaModal: { backgroundColor: '#FFF', padding: 20, borderRadius: 10, width: '80%', alignItems: 'center' },
-  tituloModal: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 10 }, textoModal: { color: '#666', marginBottom: 20 },
+  tituloModal: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 10 }, 
+  textoModal: { color: '#666', marginBottom: 20 },
   botoesModal: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
   botaoModalCancelar: { flex: 1, padding: 12, backgroundColor: '#EEE', borderRadius: 5, marginRight: 10, alignItems: 'center' },
   botaoModalExcluir: { flex: 1, padding: 12, backgroundColor: '#DC3545', borderRadius: 5, alignItems: 'center' },
-  textoBotaoModal: { color: '#333', fontWeight: 'bold' }, textoBotaoExcluirModal: { color: '#FFF', fontWeight: 'bold' },
+  textoBotaoModal: { color: '#333', fontWeight: 'bold' }, 
+  textoBotaoExcluirModal: { color: '#FFF', fontWeight: 'bold' },
 
   telaChamadaContainer: { flex: 1, backgroundColor: '#1E1E24', paddingTop: 80, paddingBottom: 60, justifyContent: 'space-between' },
   topoChamada: { alignItems: 'center' }, textoStatusChamada: { color: '#A0A0A0', fontSize: 16, marginBottom: 10 },
