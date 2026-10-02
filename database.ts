@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 
-const db = SQLite.openDatabaseSync('medalo_v7.db'); // v7 para criar o banco novo com o perfil
+const db = SQLite.openDatabaseSync('medalo_v8.db');
 
 export interface Medicamento {
   id: number;
