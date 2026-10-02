@@ -2,11 +2,11 @@
   "expo": {
     "name": "MedAlo",
     "slug": "MedAlo",
-    "version": "0.9.6",
+    "version": "0.9.7",
     "orientation": "portrait",
     "icon": "./assets/images/icone_pequeno_medalo.png",
     "scheme": "medalo",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true
     },
@@ -40,7 +40,7 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
-          "dark": {
+          "dark": { 
             "backgroundColor": "#000000"
           }
         }
