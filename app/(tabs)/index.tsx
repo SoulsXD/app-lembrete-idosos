@@ -193,7 +193,7 @@ export default function HomeScreen() {
 
       <View style={[styles.barraNavegacao, isDarkMode && styles.barraNavegacaoDark]}>
         <TouchableOpacity style={[styles.botaoAba, abaAtiva === 'cadastro' && styles.abaSelecionada]} onPress={() => setAbaAtiva('cadastro')}>
-          <Image source={require('../../assets/images/tabs_registro_medicamento.png')} style={[styles.iconeTab, abaAtiva === 'cadastro' && styles.iconeTabAtiva]} />
+          <Image source={require('../../assets/images/tabs_registro_medicamentos.png')} style={[styles.iconeTab, abaAtiva === 'cadastro' && styles.iconeTabAtiva]} />
         </TouchableOpacity>
         <TouchableOpacity style={[styles.botaoAba, abaAtiva === 'lista' && styles.abaSelecionada]} onPress={() => setAbaAtiva('lista')}>
           <Image source={require('../../assets/images/tabs_horarios_registrados.png')} style={[styles.iconeTab, abaAtiva === 'lista' && styles.iconeTabAtiva]} />

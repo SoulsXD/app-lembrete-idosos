@@ -24,7 +24,7 @@ export default function ListaAgendamentos({ medicamentos, perguntarRemover, isDa
             
             <TouchableOpacity onPress={() => perguntarRemover(item.id)}>
               <Image 
-                source={require('../../assets/images/lixeira.png')} 
+                source={require('../assets/images/lixeira.png')} 
                 style={{ width: 28, height: 28, resizeMode: 'contain', tintColor: '#DC3545' }} 
               />
             </TouchableOpacity>
