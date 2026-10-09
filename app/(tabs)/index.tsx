@@ -26,6 +26,9 @@ export default function HomeScreen() {
   
   const [modalExclusaoVisivel, setModalExclusaoVisivel] = useState(false);
   const [idParaExcluir, setIdParaExcluir] = useState<number | null>(null);
+  
+  // MODO ESCURO DE VOLTA!
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
     iniciarBanco();
@@ -159,11 +162,17 @@ export default function HomeScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={[styles.container, isDarkMode && styles.containerDark]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       
       <View style={styles.header}>
         <Image source={require('../../assets/images/logo_cabecalho.png')} style={styles.logoCabecalho} />
-        <Text style={styles.subtituloApp}>TELA PARA O CUIDADOR</Text>
+        {/* Título "Tela para o cuidador" foi removido daqui */}
+        <TouchableOpacity style={styles.botaoTema} onPress={() => setIsDarkMode(!isDarkMode)}>
+          <Image 
+            source={isDarkMode ? require('../../assets/images/sol_claro.png') : require('../../assets/images/lua_escura.png')} 
+            style={styles.iconeTema}
+          />
+        </TouchableOpacity>
       </View>
 
       {abaAtiva === 'cadastro' && (
@@ -171,6 +180,7 @@ export default function HomeScreen() {
           nomePacienteGlobal={nomePacienteGlobal} 
           atualizarPerfilPaciente={atualizarPerfilPaciente} 
           onSalvar={processarNovoRemedio} 
+          isDarkMode={isDarkMode}
         />
       )}
 
@@ -178,10 +188,11 @@ export default function HomeScreen() {
         <ListaAgendamentos 
           medicamentos={medicamentos} 
           perguntarRemover={perguntarRemover} 
+          isDarkMode={isDarkMode}
         />
       )}
 
-      <View style={styles.barraNavegacao}>
+      <View style={[styles.barraNavegacao, isDarkMode && styles.barraNavegacaoDark]}>
         <TouchableOpacity style={[styles.botaoAba, abaAtiva === 'cadastro' && styles.abaSelecionada]} onPress={() => setAbaAtiva('cadastro')}>
           <Image source={require('../../assets/images/tabs_registro_medicamentos.png')} style={[styles.iconeTab, abaAtiva === 'cadastro' && styles.iconeTabAtiva]} />
         </TouchableOpacity>
@@ -192,9 +203,9 @@ export default function HomeScreen() {
 
       <Modal visible={modalExclusaoVisivel} transparent={true} animationType="fade">
         <View style={styles.fundoModalEscuro}>
-          <View style={styles.caixinhaModal}>
-            <Text style={styles.tituloModal}>Apagar medicamento?</Text>
-            <Text style={styles.textoModal}>Esta ação irá remover o alarme.</Text>
+          <View style={[styles.caixinhaModal, isDarkMode && styles.cardDark]}>
+            <Text style={[styles.tituloModal, isDarkMode && styles.textoDark]}>Apagar medicamento?</Text>
+            <Text style={[styles.textoModal, isDarkMode && styles.subtextoDark]}>Esta ação irá remover o alarme.</Text>
             <View style={styles.botoesModal}>
               <TouchableOpacity style={styles.botaoModalCancelar} onPress={() => setModalExclusaoVisivel(false)}><Text style={styles.textoBotaoModal}>Cancelar</Text></TouchableOpacity>
               <TouchableOpacity style={styles.botaoModalExcluir} onPress={confirmarRemoverRemedio}><Text style={styles.textoBotaoExcluirModal}>Sim, excluir</Text></TouchableOpacity>
@@ -206,25 +217,20 @@ export default function HomeScreen() {
       <Modal visible={chamadaVisivel} animationType="slide" presentationStyle="fullScreen">
         <View style={styles.telaChamadaContainer}>
           <View style={styles.topoChamada}>
-            {/* Removido o 00:01, mostra o texto só quando não atendeu */}
             {!chamadaAtendida && <Text style={styles.textoStatusChamada}>Chamada recebida</Text>}
-            <Text style={styles.nomeContato}>Assistente MedAlo</Text>
-            <Text style={styles.subContato}>Lembrete para {pacienteAtual}</Text>
+            <Text style={styles.nomeContato}>Assistente MedAlo</Text><Text style={styles.subContato}>Lembrete para {pacienteAtual}</Text>
           </View>
-          
           <View style={styles.avatarContainer}>
             <View style={styles.avatarCiculo}>
               <Image source={require('../../assets/images/logo_medalo.png')} style={styles.logoChamada} />
             </View>
           </View>
-          
           {chamadaAtendida && (
             <View style={styles.infoRemedioArea}>
                <Text style={styles.textoInfoRemedio}>Tomar agora:</Text>
-               <Text style={styles.textoRemedioDestaque} numberOfLines={3}>{resumoRemedios}</Text>
+               <Text style={styles.textoRemedioDestaque} numberOfLines={3}>{resumoRemedios.toUpperCase()}</Text>
             </View>
           )}
-          
           <View style={styles.rodapeChamada}>
             {!chamadaAtendida ? (
               <View style={styles.botaoWrapper}>
@@ -247,12 +253,20 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F5', paddingTop: 40 },
+  containerDark: { backgroundColor: '#121212' }, 
   
-  header: { alignItems: 'center', marginBottom: 15, position: 'relative' },
+  header: { alignItems: 'center', marginBottom: 15, position: 'relative', minHeight: 60 },
   logoCabecalho: { width: 120, height: 120, resizeMode: 'contain', marginBottom: 5 },
-  subtituloApp: { fontSize: 20, fontWeight: 'bold', color: '#333333', textTransform: 'uppercase', letterSpacing: 1 }, 
+  
+  botaoTema: { position: 'absolute', top: 10, right: 20, padding: 5 },
+  iconeTema: { width: 32, height: 32, resizeMode: 'contain' },
+  
+  textoDark: { color: '#FFFFFF' },
+  subtextoDark: { color: '#AAAAAA' },
+  cardDark: { backgroundColor: '#1E1E1E', borderColor: '#333333' },
   
   barraNavegacao: { flexDirection: 'row', backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#DDDDDD', paddingBottom: 20, paddingTop: 10 },
+  barraNavegacaoDark: { backgroundColor: '#1E1E1E', borderTopColor: '#333333' },
   botaoAba: { flex: 1, alignItems: 'center', paddingVertical: 10 },
   abaSelecionada: { borderTopWidth: 3, borderTopColor: '#28A745', marginTop: -10, paddingTop: 13 },
   iconeTab: { width: 30, height: 30, resizeMode: 'contain', opacity: 0.5 }, 
@@ -277,12 +291,12 @@ const styles = StyleSheet.create({
   avatarCiculo: { width: 150, height: 150, borderRadius: 75, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, 
   logoChamada: { width: 110, height: 110, resizeMode: 'contain' },
   infoRemedioArea: { alignItems: 'center', paddingHorizontal: 30, marginBottom: 40 },
-  textoInfoRemedio: { color: '#A0A0A0', fontSize: 18, marginBottom: 10 }, 
-  textoRemedioDestaque: { color: '#FFFFFF', fontSize: 34, fontWeight: 'bold', textAlign: 'center', textTransform: 'uppercase' },
+  textoInfoRemedio: { color: '#A0A0A0', fontSize: 20, marginBottom: 10 }, 
+  textoRemedioDestaque: { color: '#FFFFFF', fontSize: 32, fontWeight: 'bold', textAlign: 'center', textTransform: 'uppercase' },
   rodapeChamada: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 50 },
   botaoWrapper: { alignItems: 'center' },
-  botaoAtenderVerde: { backgroundColor: '#28A745', width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', elevation: 5 },
-  botaoDesligarVermelho: { backgroundColor: '#DC3545', width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', elevation: 5 },
+  botaoAtenderVerde: { backgroundColor: '#28A745', width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', elevation: 5, marginBottom: 10 },
+  botaoDesligarVermelho: { backgroundColor: '#DC3545', width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', elevation: 5, marginBottom: 10 },
   iconeBotaoGeral: { fontSize: 35, color: '#FFFFFF' },
-  textoBotaoAcao: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold', marginTop: 8 }
+  textoBotaoAcao: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }
 });
