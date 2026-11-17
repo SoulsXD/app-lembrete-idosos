@@ -8,9 +8,10 @@ interface Props {
   atualizarPerfilPaciente: (texto: string) => void;
   onSalvar: (nome: string, dosagem: string, intervalo: string, horarioForm: string, date: Date) => Promise<boolean>;
   isDarkMode: boolean;
+  fecharModalSucesso: () => void;
 }
 
-export default function FormularioCadastro({ nomePacienteGlobal, atualizarPerfilPaciente, onSalvar, isDarkMode }: Props) {
+export default function FormularioCadastro({ nomePacienteGlobal, atualizarPerfilPaciente, onSalvar, isDarkMode, fecharModalSucesso }: Props) {
   const [nomeForm, setNomeForm] = useState('');
   const [dosagemForm, setDosagemForm] = useState('');
   const [intervaloForm, setIntervaloForm] = useState('0'); 

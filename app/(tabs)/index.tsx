@@ -27,8 +27,8 @@ export default function HomeScreen() {
   const [modalExclusaoVisivel, setModalExclusaoVisivel] = useState(false);
   const [idParaExcluir, setIdParaExcluir] = useState<number | null>(null);
   
-  // MODO ESCURO DE VOLTA!
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [modalSucessoVisivel, setModalSucessoVisivel] = useState(false);
 
   useEffect(() => {
     iniciarBanco();
@@ -114,8 +114,7 @@ export default function HomeScreen() {
     
     if (!deuErro) {
       setMedicamentos(listarMedicamentos());
-      Alert.alert('Sucesso', 'Medicamento programado com sucesso.');
-      setAbaAtiva('lista');
+      setModalSucessoVisivel(true);
       return true; 
     } else {
       deletarMedicamento(novoId); 
@@ -166,7 +165,6 @@ export default function HomeScreen() {
       
       <View style={styles.header}>
         <Image source={require('../../assets/images/logo_cabecalho.png')} style={styles.logoCabecalho} />
-        {/* Título "Tela para o cuidador" foi removido daqui */}
         <TouchableOpacity style={styles.botaoTema} onPress={() => setIsDarkMode(!isDarkMode)}>
           <Image 
             source={isDarkMode ? require('../../assets/images/sol_claro.png') : require('../../assets/images/lua_escura.png')} 
@@ -181,6 +179,10 @@ export default function HomeScreen() {
           atualizarPerfilPaciente={atualizarPerfilPaciente} 
           onSalvar={processarNovoRemedio} 
           isDarkMode={isDarkMode}
+          fecharModalSucesso={() => {
+            setModalSucessoVisivel(false);
+            setAbaAtiva('lista');
+          }}
         />
       )}
 
@@ -210,6 +212,30 @@ export default function HomeScreen() {
               <TouchableOpacity style={styles.botaoModalCancelar} onPress={() => setModalExclusaoVisivel(false)}><Text style={styles.textoBotaoModal}>Cancelar</Text></TouchableOpacity>
               <TouchableOpacity style={styles.botaoModalExcluir} onPress={confirmarRemoverRemedio}><Text style={styles.textoBotaoExcluirModal}>Sim, excluir</Text></TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={modalSucessoVisivel} transparent={true} animationType="fade">
+        <View style={styles.fundoModalEscuro}>
+          <View style={[styles.caixinhaModal, isDarkMode && styles.cardDark, { borderColor: '#28A745', borderWidth: 2 }]}>
+            <Image 
+              source={require('../../assets/images/logo_medalo.png')} 
+              style={{ width: 60, height: 60, marginBottom: 10 }} 
+            />
+            <Text style={[styles.tituloModal, { color: '#28A745', fontSize: 22 }]}>Sucesso!</Text>
+            <Text style={[styles.textoModal, isDarkMode && styles.subtextoDark, { textAlign: 'center', fontSize: 16 }]}>
+              O medicamento foi agendado e o alarme está pronto.
+            </Text>
+            <TouchableOpacity 
+              style={{ backgroundColor: '#28A745', padding: 15, borderRadius: 8, width: '100%', alignItems: 'center', marginTop: 10 }} 
+              onPress={() => {
+                setModalSucessoVisivel(false);
+                setAbaAtiva('lista');
+              }}
+            >
+              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 18 }}>OK, ENTENDI</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

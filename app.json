@@ -2,7 +2,7 @@
   "expo": {
     "name": "MedAlo",
     "slug": "MedAlo",
-    "version": "0.9.7",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icone_pequeno_medalo.png",
     "scheme": "medalo",
