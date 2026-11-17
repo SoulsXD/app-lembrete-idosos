@@ -218,24 +218,22 @@ export default function HomeScreen() {
 
       <Modal visible={modalSucessoVisivel} transparent={true} animationType="fade">
         <View style={styles.fundoModalEscuro}>
-          <View style={[styles.caixinhaModal, isDarkMode && styles.cardDark, { borderColor: '#28A745', borderWidth: 2 }]}>
-            <Image 
-              source={require('../../assets/images/logo_medalo.png')} 
-              style={{ width: 60, height: 60, marginBottom: 10 }} 
-            />
-            <Text style={[styles.tituloModal, { color: '#28A745', fontSize: 22 }]}>Sucesso!</Text>
-            <Text style={[styles.textoModal, isDarkMode && styles.subtextoDark, { textAlign: 'center', fontSize: 16 }]}>
-              O medicamento foi agendado e o alarme está pronto.
+          <View style={[styles.caixinhaModal, isDarkMode && styles.cardDark]}>
+            <Text style={[styles.tituloModal, isDarkMode && styles.textoDark]}>Sucesso!</Text>
+            <Text style={[styles.textoModal, isDarkMode && styles.subtextoDark, { textAlign: 'center' }]}>
+              Medicamento programado com sucesso.
             </Text>
-            <TouchableOpacity 
-              style={{ backgroundColor: '#28A745', padding: 15, borderRadius: 8, width: '100%', alignItems: 'center', marginTop: 10 }} 
-              onPress={() => {
-                setModalSucessoVisivel(false);
-                setAbaAtiva('lista');
-              }}
-            >
-              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 18 }}>OK, ENTENDI</Text>
-            </TouchableOpacity>
+            <View style={styles.botoesModal}>
+              <TouchableOpacity 
+                style={[styles.botaoModalExcluir, { backgroundColor: '#28A745', marginLeft: 0 }]} 
+                onPress={() => {
+                  setModalSucessoVisivel(false);
+                  setAbaAtiva('lista');
+                }}
+              >
+                <Text style={styles.textoBotaoExcluirModal}>OK, entendi</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
