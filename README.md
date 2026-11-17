@@ -1,51 +1,65 @@
-# Welcome to your Expo app 👋
+# MedAlo
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicativo móvel de gestão e alerta de medicamentos desenvolvido com foco na acessibilidade digital e usabilidade para o público idoso. Este projeto é um Trabalho de Conclusão de Curso do Instituto Federal do Rio Grande do Norte.
 
-## Get started
+## Sobre o Projeto
 
-1. Install dependencies
+O MedAlo foi construído para resolver o problema da adesão medicamentosa pelo público idoso, combatendo as barreiras tecnológicas dos aplicativos convencionais. O sistema opera de forma totalmente *offline*, dispensando a criação de contas em nuvem ou conexão com a internet para suas funcionalidades principais.
 
-   ```bash
-   npm install
-   ```
+Para contornar o problema de alertas ignorados, o aplicativo substitui as notificações padrão do sistema operacional por um alerta em tela cheia que simula uma chamada telefônica, reduzindo a curva de aprendizado do usuário idoso.
 
-2. Start the app
+## Funcionalidades Principais
 
-   ```bash
-   npx expo start
-   ```
+* **Funcionamento 100% Offline:** Dados salvos localmente utilizando o banco de dados SQLite.
+* **Interface Acessível:** Design focado na redução da carga cognitiva, com formulários de etapa única, fontes ampliadas e suporte a modo escuro de alto contraste.
+* **Alertas de Alta Prioridade:** Tela emergente que simula uma ligação telefônica (botões de atender e desligar).
+* **TTS:** Verbalização do nome e da dosagem do medicamento durante o acionamento do alarme.
 
-In the output, you'll find options to open the app in a
+## Tecnologias Utilizadas
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+* **React Native**
+* **Expo**
+* **SQLite**
+* **Notifee**
+* **Expo Speech**
+* **Expo AV**
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Como Executar o Projeto
 
-## Get a fresh project
+### Pré-requisitos
 
-When you're ready, run:
+* Node.js instalado
+* Conta e CLI do Expo configurados
+* Dispositivo físico Android
 
+### Passos de Instalação
+
+1. Clone este repositório:
 ```bash
-npm run reset-project
+git clone https://github.com/SoulsXD/app-lembrete-idosos.git
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Acesse a pasta do projeto.
 
-## Learn more
+3. Instale as dependências:
+```bash
+npm install
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+4. Inicie o servidor de desenvolvimento:
+```bash
+npx expo start
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Gerando o APK para testes
 
-## Join the community
+Recomenda-se a geração do APK via EAS Build:
 
-Join our community of developers creating universal apps.
+```bash
+eas build -p android --profile preview
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
-# app-lembrete-idosos
+## Autor
+
+**Marcelo Henrique Cordeiro e Souza**  
+Tecnologia em Sistemas para Internet - IFRN Campus Parnamirim
